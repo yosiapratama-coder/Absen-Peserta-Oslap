@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absensi Peserta Ospek Lapangan</title>
+<style>
+:root{--primary:#1769aa;--dark:#12344d;--bg:#f3f6f9;--green:#1b8a5a;--red:#d64545;--yellow:#e6a700}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#1f2937}
+header{background:linear-gradient(135deg,#12344d,#1769aa);color:#fff;padding:28px 18px;text-align:center}
+header h1{margin:0 0 8px;font-size:28px} header p{margin:0;opacity:.9}
+.container{max-width:1400px;margin:22px auto;padding:0 16px}
+.toolbar{background:#fff;border-radius:14px;padding:16px;box-shadow:0 4px 18px #0000000d;margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input,select,button{font:inherit} .search{flex:1;min-width:220px;padding:11px 13px;border:1px solid #d6dde5;border-radius:9px}
+button{border:0;border-radius:9px;padding:11px 15px;cursor:pointer;font-weight:700}
+.btn-save{background:var(--primary);color:white}.btn-clear{background:#eef2f6;color:#344054}.btn-export{background:#198754;color:white}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.stat{background:#fff;border-radius:12px;padding:12px 18px;box-shadow:0 3px 12px #0000000a;min-width:120px}
+.stat b{display:block;font-size:22px}.stat span{font-size:13px;color:#667085}
+.table-wrap{background:#fff;border-radius:14px;box-shadow:0 4px 18px #0000000d;overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1180px}
+th{background:#eef4f8;color:#12344d;text-align:left;padding:13px 10px;position:sticky;top:0;z-index:2}
+td{padding:10px;border-top:1px solid #edf0f3;vertical-align:middle}
+tr.saved{background:#f4fff9}.no{font-weight:bold;color:#667085}
+.name{font-weight:700;white-space:nowrap}.nim{font-family:monospace;white-space:nowrap}
+.cell-input,.cell-select{width:100%;padding:9px;border:1px solid #d6dde5;border-radius:7px;background:#fff}
+.status{display:flex;gap:7px;flex-wrap:wrap}.status label{border:1px solid #d6dde5;border-radius:8px;padding:7px 9px;cursor:pointer;font-size:13px}
+.status input{accent-color:var(--primary)} .reason{min-width:180px}
+.save-one{background:#1769aa;color:#fff;padding:8px 11px}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.badge.ok{background:#dff6ea;color:#16734b}.badge.pending{background:#fff4d6;color:#946200}
+.note{font-size:13px;color:#667085;margin-top:12px}
+.empty{padding:35px;text-align:center;color:#667085}
+@media(max-width:700px){header h1{font-size:22px}.container{padding:0 9px}.toolbar{padding:12px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>ABSENSI PESERTA OSPEK LAPANGAN</h1>
+  <p>Form absensi peserta — data tersimpan di browser setelah tombol OK ditekan</p>
+</header>
+
+<div class="container">
+  <div class="toolbar">
+    <input id="search" class="search" placeholder="Cari nama atau NIM..." oninput="renderRows()">
+    <button class="btn-save" onclick="saveAll()">✓ Simpan Semua</button>
+    <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn-clear" onclick="clearAll()">Reset Data</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b id="total">50</b><span>Total Peserta</span></div>
+    <div class="stat"><b id="hadir">0</b><span>Hadir</span></div>
+    <div class="stat"><b id="izin">0</b><span>Izin</span></div>
+    <div class="stat"><b id="alfa">0</b><span>Alfa</span></div>
+    <div class="stat"><b id="saved">0</b><span>Sudah disimpan</span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>No</th><th>Nama</th><th>NIM</th><th>Jurusan</th><th>Semester</th>
+        <th>Status Kehadiran</th><th>Alasan Izin</th><th>Data</th><th>Aksi</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="note">Catatan: penyimpanan menggunakan localStorage browser. Data tetap ada saat halaman ditutup/dibuka kembali pada browser dan perangkat yang sama.</div>
+</div>
+
+<script>
+const peserta = [
+["FERDI WIJAYA","2661201144"],["KELLA GISELLE","2661201039"],["AGUS RIANTO","2662201065"],
+["ETHAN DAEGAN","2661201143"],["PHILNIA NANDY OSBO","2661201102"],["FAIQ RAMADHAN RIADI AFVA","2657201043"],
+["CHERINE VALENCIA","2661201141"],["TONNY WINATA","2661201053"],["AFDOL GUSTAV NATAWARMAN GEA","2661201180"],
+["FRANSISCUS MAXRELIUS JUT","2661201029"],["STEVEN LEE","2655202022"],["TRIVEL JOSHUA TUERAH","2655202066"],
+["MARISA PUTRI MERCU","2657201044"],["SLOVENIA LIM","2661201107"],["JESEN ALFANDO CANG","2661201154"],
+["CATHERINA OCTAVIANA SIAHAAN","2662201092"],["STANLEY C","2655202036"],["BRYAN RONALD","2662201006"],
+["JOSE ANDREAS TAMBUNAN","2657201021"],["DAVID HUANG","2655202037"],["EDISON LIM","2661201026"],
+["MARCSELL.CU","2661201101"],["KAROLYN","2661201038"],["SANTIKA","2662201037"],
+["YOUNGKY CRISTIAN.C","2662201069"],["SHEREEN CHARLINE","2661201063"],["RAHMAH AYU FATIMA AZZAHRA","2662201088"],
+["FANNIE TAN","2662201014"],["JESSLYN EVADNE","2661201036"],["AURELLIA EKAVATI MEILANO","2661201069"],
+["FIONA LORENSIA SUN","2662201016"],["WILLIYANA CHARLIYUS","2655202025"],["LINO SANCES","2655202015"]
+];
+// Slot 36-50 sengaja dikosongkan agar tidak mengarang nama/NIM.
+while(peserta.length<50) peserta.push(["",""]);
+
+const KEY="ospek_absensi_v1";
+let data=JSON.parse(localStorage.getItem(KEY)||"{}");
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function get(i){return data[i]||{jurusan:"",semester:"",status:"",reason:"",saved:false};}
+function renderRows(){
+ const q=document.getElementById("search").value.toLowerCase();
+ let out="";
+ peserta.forEach((p,i)=>{
+   if(q && !(p[0]+" "+p[1]).toLowerCase().includes(q)) return;
+   const d=get(i);
+   out+=`<tr id="r${i}" class="${d.saved?'saved':''}">
+   <td class="no">${i+1}</td>
+   <td><input class="cell-input name" id="name${i}" value="${esc(p[0])}" placeholder="Nama peserta"></td>
+   <td><input class="cell-input nim" id="nim${i}" value="${esc(p[1])}" placeholder="NIM"></td>
+   <td><input class="cell-input" id="jurusan${i}" value="${esc(d.jurusan)}" placeholder="Jurusan"></td>
+   <td><select class="cell-select" id="semester${i}">
+     <option value="">Pilih</option><option value="Semester 1" ${d.semester=="Semester 1"?"selected":""}>Semester 1</option>
+     <option value="Semester 3" ${d.semester=="Semester 3"?"selected":""}>Semester 3</option>
+     <option value="Semester 5" ${d.semester=="Semester 5"?"selected":""}>Semester 5</option>
+     <option value="Semester 7" ${d.semester=="Semester 7"?"selected":""}>Semester 7</option>
+   </select></td>
+   <td><div class="status">
+    <label><input type="radio" name="status${i}" value="Hadir" ${d.status=="Hadir"?"checked":""} onchange="toggleReason(${i})"> Hadir</label>
+    <label><input type="radio" name="status${i}" value="Izin" ${d.status=="Izin"?"checked":""} onchange="toggleReason(${i})"> Izin</label>
+    <label><input type="radio" name="status${i}" value="Alfa" ${d.status=="Alfa"?"checked":""} onchange="toggleReason(${i})"> Alfa</label>
+   </div></td>
+   <td><input class="cell-input reason" id="reason${i}" value="${esc(d.reason)}" placeholder="Alasan jika izin" ${d.status=="Izin"?"":"disabled"}></td>
+   <td>${d.saved?'<span class="badge ok">✓ Tersimpan</span>':'<span class="badge pending">Belum disimpan</span>'}</td>
+   <td><button class="save-one" onclick="saveOne(${i})">OK</button></td>
+   </tr>`;
+ });
+ document.getElementById("rows").innerHTML=out||'<tr><td colspan="9" class="empty">Peserta tidak ditemukan.</td></tr>';
+ updateStats();
+}
+function toggleReason(i){
+ const st=document.querySelector(`input[name="status${i}"]:checked`)?.value||"";
+ const el=document.getElementById("reason"+i); if(el){el.disabled=st!=="Izin"; if(st!=="Izin") el.value="";}
+}
+function readRow(i){
+ const st=document.querySelector(`input[name="status${i}"]:checked`)?.value||"";
+ return {jurusan:document.getElementById("jurusan"+i).value,semester:document.getElementById("semester"+i).value,status:st,reason:document.getElementById("reason"+i).value,saved:true,
+ name:document.getElementById("name"+i).value,nim:document.getElementById("nim"+i).value};
+}
+function saveOne(i){
+ const d=readRow(i); data[i]=d; peserta[i][0]=d.name; peserta[i][1]=d.nim;
+ localStorage.setItem(KEY,JSON.stringify(data)); renderRows();
+}
+function saveAll(){
+ peserta.forEach((_,i)=>{const name=document.getElementById("name"+i); if(name) {const d=readRow(i); data[i]=d; peserta[i][0]=d.name; peserta[i][1]=d.nim;}});
+ localStorage.setItem(KEY,JSON.stringify(data)); renderRows(); alert("Data absensi berhasil disimpan.");
+}
+function updateStats(){
+ let h=0,z=0,a=0,s=0;
+ Object.values(data).forEach(d=>{if(d.status=="Hadir")h++;if(d.status=="Izin")z++;if(d.status=="Alfa")a++;if(d.saved)s++;});
+ document.getElementById("hadir").textContent=h;document.getElementById("izin").textContent=z;
+ document.getElementById("alfa").textContent=a;document.getElementById("saved").textContent=s;
+}
+function clearAll(){
+ if(!confirm("Reset semua data absensi yang tersimpan?"))return;
+ data={};localStorage.removeItem(KEY);renderRows();
+}
+function csvCell(x){return '"'+String(x??"").replace(/"/g,'""')+'"';}
+function exportCSV(){
+ let lines=[["No","Nama","NIM","Jurusan","Semester","Status","Alasan Izin","Tersimpan"].map(csvCell).join(",")];
+ peserta.forEach((p,i)=>{const d=get(i);lines.push([i+1,p[0],p[1],d.jurusan,d.semester,d.status,d.reason,d.saved?"Ya":"Tidak"].map(csvCell).join(","));});
+ const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="absensi_peserta_ospek.csv";a.click();URL.revokeObjectURL(a.href);
+}
+renderRows();
+</script>
+</body>
+</html>
